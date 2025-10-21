@@ -1,0 +1,218 @@
+Perfect — you’re inside the `axess-springboot-training` project and I can see multiple packages like `a10jwt`, `a11security`, etc.
+
+Let’s place **Phase 3** cleanly so it doesn’t mess with your other modules.
+
+---
+
+### 📂 Step-by-Step File & Folder Setup
+
+Let’s create a new package inside:
+
+```
+src/main/java
+```
+
+and name it something like
+➡️ `a12empcrud`
+
+That package will contain **everything** for Phase 3.
+
+Your final structure will look like this:
+
+```
+axess-springboot-training
+ └── src
+     └── main
+         ├── java
+         │   ├── a12empcrud
+         │   │   ├── Emp.java
+         │   │   ├── EmpRepository.java
+         │   │   ├── EmpService.java
+         │   │   ├── EmpController.java
+         │   │   └── SecurityConfig.java
+         │   └── com.scb.axessspringboottraining (your main app package)
+         └── resources
+             └── application.properties
+```
+
+---
+
+### ⚙️ What Goes Where
+
+#### 1️⃣ **`Emp.java`** — entity class
+
+`src/main/java/a12empcrud/Emp.java`
+
+```java
+package a12empcrud;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+
+@Entity
+public class Emp {
+    @Id
+    private int empno;
+    private String empname;
+    private int deptid;
+    private String mobileno;
+
+    public int getEmpno() { return empno; }
+    public void setEmpno(int empno) { this.empno = empno; }
+
+    public String getEmpname() { return empname; }
+    public void setEmpname(String empname) { this.empname = empname; }
+
+    public int getDeptid() { return deptid; }
+    public void setDeptid(int deptid) { this.deptid = deptid; }
+
+    public String getMobileno() { return mobileno; }
+    public void setMobileno(String mobileno) { this.mobileno = mobileno; }
+}
+```
+
+---
+
+#### 2️⃣ **`EmpRepository.java`**
+
+`src/main/java/a12empcrud/EmpRepository.java`
+
+```java
+package a12empcrud;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface EmpRepository extends JpaRepository<Emp, Integer> {
+}
+```
+
+---
+
+#### 3️⃣ **`EmpService.java`**
+
+`src/main/java/a12empcrud/EmpService.java`
+
+```java
+package a12empcrud;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.util.Optional;
+
+@Service
+public class EmpService {
+
+    @Autowired
+    private EmpRepository repo;
+
+    public Emp getEmployeeById(int empno) {
+        Optional<Emp> emp = repo.findById(empno);
+        return emp.orElse(null);
+    }
+
+    public Emp updateEmployee(int empno, int deptid, String mobileno) {
+        Optional<Emp> empOpt = repo.findById(empno);
+        if (empOpt.isPresent()) {
+            Emp emp = empOpt.get();
+            emp.setDeptid(deptid);
+            emp.setMobileno(mobileno);
+            return repo.save(emp);
+        }
+        return null;
+    }
+}
+```
+
+---
+
+#### 4️⃣ **`EmpController.java`**
+
+`src/main/java/a12empcrud/EmpController.java`
+
+```java
+package a12empcrud;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/emp")
+public class EmpController {
+
+    @Autowired
+    private EmpService service;
+
+    @GetMapping("/getEmployee/{empno}")
+    public Emp getEmployee(@PathVariable int empno) {
+        return service.getEmployeeById(empno);
+    }
+
+    @PostMapping("/updateEmployee")
+    public Emp updateEmployee(@RequestParam int empno,
+                              @RequestParam int deptid,
+                              @RequestParam String mobileno) {
+        return service.updateEmployee(empno, deptid, mobileno);
+    }
+}
+```
+
+---
+
+#### 5️⃣ **`SecurityConfig.java`**
+
+`src/main/java/a12empcrud/SecurityConfig.java`
+
+```java
+package a12empcrud;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+
+@org.springframework.context.annotation.Configuration
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf().disable()
+            .authorizeHttpRequests()
+                .requestMatchers("/emp/getEmployee/**").permitAll()
+                .requestMatchers("/emp/updateEmployee").authenticated()
+            .and()
+            .httpBasic();
+        return http.build();
+    }
+}
+```
+
+---
+
+#### 6️⃣ **`application.properties`**
+
+Go to `src/main/resources/application.properties` and add:
+
+```properties
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.hibernate.ddl-auto=update
+spring.h2.console.enabled=true
+```
+
+---
+
+### ▶️ To Run:
+
+* Run your main `StartApp.java` (or whatever your main Spring Boot class is).
+* Open browser:
+
+  * **Unsecured GET:**
+    `http://localhost:8080/emp/getEmployee/101`
+  * **Secured POST (Basic Auth required):**
+    `http://localhost:8080/emp/updateEmployee?empno=101&deptid=20&mobileno=9876543210`
+
+---
+
+Would you like me to also show how to create an **in-memory username/password** for testing Basic Auth (so you can test `updateEmployee` immediately)?
